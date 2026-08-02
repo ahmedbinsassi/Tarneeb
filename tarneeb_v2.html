@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>حساب نقاط الطرنيب</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --gold: #c9a24b;
+    --gold-bright: #e0c274;
+    --cream: #f4ecd8;
+    --cream-dim: #d8cbaa;
+    --red-suit: #b5473b;
+    --p1: #c9a24b;
+    --p2: #6fa3c9;
+    --p3: #b5473b;
+    --p4: #7fb37a;
+  }
+
+  html, body {
+    background: radial-gradient(ellipse at top, #145840 0%, #0a2e22 65%, #071f18 100%);
+    background-attachment: fixed;
+    color: var(--cream);
+    font-family: 'Tajawal', sans-serif;
+    min-height: 100vh;
+  }
+
+  body { padding: 24px 16px 60px; }
+
+  .wrap { max-width: 980px; margin: 0 auto; }
+
+  header { text-align: center; margin-bottom: 22px; }
+
+  .suits {
+    font-size: 15px;
+    letter-spacing: 10px;
+    color: var(--gold-bright);
+    opacity: 0.85;
+    margin-bottom: 6px;
+  }
+
+  h1 {
+    font-family: 'Cairo', sans-serif;
+    font-weight: 900;
+    font-size: clamp(28px, 6vw, 44px);
+    color: var(--cream);
+    text-shadow: 0 2px 0 rgba(0,0,0,0.35);
+    letter-spacing: 1px;
+  }
+
+  .subtitle { color: var(--cream-dim); font-size: 14px; margin-top: 6px; }
+
+  .target-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 16px 0 26px;
+    flex-wrap: wrap;
+  }
+  .target-row label { font-size: 14px; color: var(--cream-dim); }
+  .target-row input {
+    width: 80px;
+    text-align: center;
+    font-family: 'Cairo', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(201,162,75,0.5);
+    color: var(--gold-bright);
+    border-radius: 8px;
+    padding: 6px 4px;
+  }
+
+  .winner-banner {
+    display: none;
+    text-align: center;
+    margin: 0 0 22px;
+    padding: 16px;
+    background: linear-gradient(90deg, rgba(201,162,75,0.15), rgba(201,162,75,0.05), rgba(201,162,75,0.15));
+    border: 1px solid var(--gold);
+    border-radius: 14px;
+    font-family: 'Cairo', sans-serif;
+    font-weight: 700;
+    color: var(--gold-bright);
+    font-size: 17px;
+  }
+  .winner-banner.show { display: block; animation: pop .3s ease; }
+  @keyframes pop { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+  .players-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 700px) { .players-grid { grid-template-columns: 1fr; } }
+
+  .player-card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    border: 1px solid rgba(201,162,75,0.3);
+    border-radius: 18px;
+    padding: 18px;
+    position: relative;
+    box-shadow: 0 10px 26px rgba(0,0,0,0.28);
+  }
+  .player-card[data-rank="1"] { border-color: var(--gold); box-shadow: 0 0 0 1px rgba(224,194,116,0.4), 0 10px 26px rgba(0,0,0,0.28); }
+
+  .player-card::before {
+    content: attr(data-suit);
+    position: absolute;
+    top: 12px; left: 14px;
+    font-size: 18px;
+    opacity: 0.5;
+  }
+
+  .rank-badge {
+    position: absolute;
+    top: 12px; right: 14px;
+    font-family: 'Cairo', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--cream-dim);
+    background: rgba(0,0,0,0.25);
+    padding: 3px 9px;
+    border-radius: 999px;
+  }
+  .player-card[data-rank="1"] .rank-badge { color: #0d3d2e; background: var(--gold-bright); }
+
+  .player-name {
+    width: 100%;
+    background: rgba(0,0,0,0.22);
+    border: 1px solid rgba(244,236,216,0.15);
+    color: var(--cream);
+    font-family: 'Cairo', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    padding: 9px 10px;
+    border-radius: 10px;
+    text-align: center;
+    margin: 26px 0 12px;
+  }
+  .player-name:focus { outline: none; border-color: var(--gold); background: rgba(0,0,0,0.32); }
+
+  .score-display { text-align: center; margin: 6px 0 16px; }
+  .score-num {
+    font-family: 'Cairo', sans-serif;
+    font-weight: 900;
+    font-size: 56px;
+    line-height: 1;
+    color: var(--cream);
+    text-shadow: 0 3px 0 rgba(0,0,0,0.4);
+    transition: transform .12s;
+  }
+  .score-num.bump { transform: scale(1.12); }
+
+  .quick-row { display: flex; gap: 6px; justify-content: center; margin-bottom: 10px; flex-wrap: wrap; }
+  .chip {
+    border: 1px solid rgba(201,162,75,0.45);
+    background: rgba(201,162,75,0.08);
+    color: var(--gold-bright);
+    font-family: 'Cairo', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 6px 11px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .chip:hover { background: rgba(201,162,75,0.22); transform: translateY(-1px); }
+  .chip.minus { color: var(--red-suit); border-color: rgba(181,71,59,0.5); background: rgba(181,71,59,0.08); }
+  .chip.minus:hover { background: rgba(181,71,59,0.22); }
+
+  .custom-row { display: flex; gap: 6px; justify-content: center; align-items: center; }
+  .custom-row input[type="number"] {
+    width: 64px;
+    text-align: center;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(244,236,216,0.2);
+    color: var(--cream);
+    border-radius: 8px;
+    padding: 6px 4px;
+    font-family: 'Cairo', sans-serif;
+    font-size: 14px;
+  }
+  .custom-row input[type="number"]:focus { outline: none; border-color: var(--gold); }
+  .custom-row button {
+    border: none;
+    border-radius: 8px;
+    padding: 7px 13px;
+    font-family: 'Cairo', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .custom-row button:hover { filter: brightness(1.15); }
+  .btn-add { background: var(--gold); color: #0d3d2e; }
+  .btn-sub { background: var(--red-suit); color: var(--cream); }
+
+  .reset-btn {
+    display: block;
+    margin: 22px auto 0;
+    background: transparent;
+    border: 1px solid rgba(181,71,59,0.5);
+    color: #e08a80;
+    padding: 8px 18px;
+    border-radius: 10px;
+    font-family: 'Tajawal', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .reset-btn:hover { background: rgba(181,71,59,0.12); }
+
+  .history-section {
+    margin-top: 26px;
+    background: rgba(0,0,0,0.18);
+    border: 1px solid rgba(244,236,216,0.12);
+    border-radius: 16px;
+    padding: 16px 18px;
+  }
+  .history-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .history-header h2 { font-family: 'Cairo', sans-serif; font-size: 15px; color: var(--gold-bright); letter-spacing: 1px; }
+  #undo-btn {
+    background: transparent;
+    border: 1px solid rgba(244,236,216,0.25);
+    color: var(--cream-dim);
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  #undo-btn:hover { border-color: var(--gold); color: var(--gold-bright); }
+  #undo-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .history-list { display: flex; flex-direction: column-reverse; gap: 6px; max-height: 220px; overflow-y: auto; }
+  .history-empty { color: var(--cream-dim); font-size: 13px; text-align: center; padding: 14px 0; opacity: 0.6; }
+  .history-row {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 13px; padding: 7px 10px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 8px;
+    border-right: 3px solid transparent;
+  }
+  .history-row .delta.pos { color: #8fd19e; }
+  .history-row .delta.neg { color: #e08a80; }
+  .history-row .time { color: var(--cream-dim); font-size: 11px; }
+
+  footer { text-align: center; margin-top: 30px; color: rgba(244,236,216,0.35); font-size: 12px; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="suits">♠ ♥ ♣ ♦</div>
+    <h1>حساب نقاط الطرنيب</h1>
+    <div class="subtitle">أربعة لاعبين، كل واحد وحساباتو، وما كاين حتى فريق</div>
+  </header>
+
+  <div class="target-row">
+    <label for="target-input">النقاط المطلوبة للفوز:</label>
+    <input type="number" id="target-input" value="41">
+  </div>
+
+  <div class="winner-banner" id="winner-banner"></div>
+
+  <div class="players-grid" id="players-grid"></div>
+
+  <button class="reset-btn" id="reset-btn">تصفير الجولة الحالية</button>
+
+  <div class="history-section">
+    <div class="history-header">
+      <h2>سجل النقاط</h2>
+      <button id="undo-btn">تراجع عن آخر حركة</button>
+    </div>
+    <div class="history-list" id="history-list">
+      <div class="history-empty" id="history-empty">لا توجد حركات بعد — ابدأ اللعب!</div>
+    </div>
+  </div>
+
+  <footer>مبروك مقدماً على الفوز 🂡</footer>
+</div>
+
+<script>
+  const STORAGE_KEY = 'tarneeb-solo-state';
+  const SUITS = ['♠', '♥', '♣', '♦'];
+  const COLORS = ['p1', 'p2', 'p3', 'p4'];
+
+  const state = {
+    target: 41,
+    players: [
+      { id: 'p1', name: 'أحمد', score: 0 },
+      { id: 'p2', name: 'ملاك', score: 0 },
+      { id: 'p3', name: 'علي', score: 0 },
+      { id: 'p4', name: 'محمد', score: 0 }
+    ],
+    history: []
+  };
+
+  const grid = document.getElementById('players-grid');
+  const targetInput = document.getElementById('target-input');
+  const historyList = document.getElementById('history-list');
+  const historyEmpty = document.getElementById('history-empty');
+  const winnerBanner = document.getElementById('winner-banner');
+  const undoBtn = document.getElementById('undo-btn');
+
+  function fmtTime(ts) {
+    const d = new Date(ts);
+    return d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function playerName(id) {
+    const p = state.players.find(pl => pl.id === id);
+    return p ? p.name : id;
+  }
+
+  function buildCards() {
+    grid.innerHTML = '';
+    state.players.forEach((p, i) => {
+      const card = document.createElement('div');
+      card.className = 'player-card';
+      card.dataset.player = p.id;
+      card.dataset.suit = SUITS[i];
+      card.style.borderTopColor = `var(--${p.id})`;
+      card.innerHTML = `
+        <span class="rank-badge" data-rankbadge="${p.id}"></span>
+        <input class="player-name" data-name="${p.id}" maxlength="16" value="${p.name}">
+        <div class="score-display">
+          <div class="score-num" id="score-${p.id}">${p.score}</div>
+        </div>
+        <div class="quick-row">
+          <button class="chip" data-player="${p.id}" data-add="1">+1</button>
+          <button class="chip" data-player="${p.id}" data-add="3">+3</button>
+          <button class="chip" data-player="${p.id}" data-add="5">+5</button>
+          <button class="chip" data-player="${p.id}" data-add="7">+7</button>
+          <button class="chip" data-player="${p.id}" data-add="10">+10</button>
+          <button class="chip minus" data-player="${p.id}" data-add="-1">-1</button>
+        </div>
+        <div class="custom-row">
+          <input type="number" id="custom-${p.id}" placeholder="0">
+          <button class="btn-add" data-customadd="${p.id}">إضافة</button>
+          <button class="btn-sub" data-customsub="${p.id}">طرح</button>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+    wireCardEvents();
+  }
+
+  function wireCardEvents() {
+    grid.querySelectorAll('.chip').forEach(btn => {
+      btn.addEventListener('click', () => addScore(btn.dataset.player, parseInt(btn.dataset.add, 10)));
+    });
+    grid.querySelectorAll('[data-customadd]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.customadd;
+        const input = document.getElementById(`custom-${id}`);
+        const val = parseInt(input.value, 10);
+        if (!isNaN(val) && val !== 0) { addScore(id, val); input.value = ''; }
+      });
+    });
+    grid.querySelectorAll('[data-customsub]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.customsub;
+        const input = document.getElementById(`custom-${id}`);
+        const val = parseInt(input.value, 10);
+        if (!isNaN(val) && val !== 0) { addScore(id, -Math.abs(val)); input.value = ''; }
+      });
+    });
+    grid.querySelectorAll('[data-name]').forEach(inp => {
+      inp.addEventListener('change', () => {
+        const p = state.players.find(pl => pl.id === inp.dataset.name);
+        p.name = inp.value.trim() || p.id;
+        render();
+      });
+    });
+  }
+
+  function render() {
+    targetInput.value = state.target;
+
+    // update scores + names without full rebuild (keeps focus nice)
+    state.players.forEach(p => {
+      const scoreEl = document.getElementById(`score-${p.id}`);
+      if (scoreEl) scoreEl.textContent = p.score;
+      const nameInp = grid.querySelector(`[data-name="${p.id}"]`);
+      if (nameInp && document.activeElement !== nameInp) nameInp.value = p.name;
+    });
+
+    // ranking badges
+    const sorted = [...state.players].sort((a, b) => b.score - a.score);
+    sorted.forEach((p, idx) => {
+      const badge = grid.querySelector(`[data-rankbadge="${p.id}"]`);
+      const card = grid.querySelector(`[data-player="${p.id}"]`);
+      if (badge) badge.textContent = `#${idx + 1}`;
+      if (card) card.dataset.rank = idx + 1;
+    });
+
+    // history
+    if (state.history.length === 0) {
+      historyEmpty.style.display = 'block';
+      historyList.querySelectorAll('.history-row').forEach(r => r.remove());
+    } else {
+      historyEmpty.style.display = 'none';
+      historyList.querySelectorAll('.history-row').forEach(r => r.remove());
+      state.history.forEach(entry => {
+        const row = document.createElement('div');
+        row.className = 'history-row';
+        const sign = entry.delta > 0 ? '+' : '';
+        row.innerHTML = `
+          <span>${playerName(entry.player)}</span>
+          <span class="delta ${entry.delta >= 0 ? 'pos' : 'neg'}">${sign}${entry.delta}</span>
+          <span class="time">${fmtTime(entry.ts)}</span>
+        `;
+        historyList.appendChild(row);
+      });
+    }
+
+    undoBtn.disabled = state.history.length === 0;
+
+    // winner check
+    const leader = sorted[0];
+    if (leader.score >= state.target) {
+      winnerBanner.textContent = `🏆 فاز ${leader.name} بالنقاط ${leader.score}!`;
+      winnerBanner.classList.add('show');
+    } else {
+      winnerBanner.classList.remove('show');
+    }
+
+    save();
+  }
+
+  function addScore(id, delta) {
+    if (!delta) return;
+    const p = state.players.find(pl => pl.id === id);
+    p.score += delta;
+    state.history.push({ player: id, delta, ts: Date.now() });
+    bump(id);
+    render();
+  }
+
+  function bump(id) {
+    const el = document.getElementById(`score-${id}`);
+    el.classList.remove('bump');
+    void el.offsetWidth;
+    el.classList.add('bump');
+  }
+
+  function undo() {
+    const last = state.history.pop();
+    if (!last) return;
+    const p = state.players.find(pl => pl.id === last.player);
+    p.score -= last.delta;
+    render();
+  }
+
+  function resetGame() {
+    state.players.forEach(p => p.score = 0);
+    state.history = [];
+    render();
+  }
+
+  async function save() {
+    try {
+      if (window.storage) {
+        await window.storage.set(STORAGE_KEY, JSON.stringify(state), false);
+        return;
+      }
+    } catch (e) { /* fall through to localStorage */ }
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) { /* ignore */ }
+  }
+
+  async function load() {
+    let saved = null;
+    try {
+      if (window.storage) {
+        const res = await window.storage.get(STORAGE_KEY, false);
+        if (res && res.value) saved = JSON.parse(res.value);
+      }
+    } catch (e) { /* no saved state in Claude storage yet */ }
+
+    if (!saved) {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) saved = JSON.parse(raw);
+      } catch (e) { /* no saved state in localStorage yet */ }
+    }
+
+    if (saved && saved.players && saved.players.length === 4) {
+      state.players = saved.players;
+      state.history = saved.history || [];
+      state.target = saved.target || 41;
+    }
+
+    buildCards();
+    render();
+  }
+
+  targetInput.addEventListener('change', () => {
+    const val = parseInt(targetInput.value, 10);
+    state.target = isNaN(val) ? 41 : val;
+    render();
+  });
+
+  undoBtn.addEventListener('click', undo);
+  document.getElementById('reset-btn').addEventListener('click', () => {
+    if (confirm('متأكد بغيتي تصفر النقاط ديال الجولة الحالية؟')) resetGame();
+  });
+
+  load();
+</script>
+
+</body>
+</html>
